@@ -1,0 +1,1 @@
+global_block_var

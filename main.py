@@ -36,18 +36,25 @@ def normalisation(image):
 
 def segmentation(image):
     width = 24
-    block_array = np.array([image[x:x + width,y:y + width] 
-          for x in range(0,image.shape[0],width) 
-          for y in range(0,image.shape[1],width)])
+    # block_array = np.array([image[x:x + width,y:y + width] 
+    #       for x in range(0,image.shape[0]-width,width) 
+    #       for y in range(0,image.shape[1]-width,width)])
+
+    block_array = []
+    for row in range(0, image.shape[0], width):
+        for col in range(0, image.shape[1], width):
+            block_array.append(image[row:row + width, col:col + width]) 
 
     mean_array = []
-    variance_array = []
+    variance_array = [] 
     for block in block_array:
         block_mean = np.mean(block)
         block_var = np.sum((block - block_mean)**2) / np.size(block)
 
         mean_array.append(block_mean)
         variance_array.append(block_var)
+
+    # plt.plot(np.arange(len(variance_array)), np.asarray(variance_array).astype(np.float64))
 
     global_block_mean = np.mean(mean_array)
     global_block_var = np.mean(variance_array)
@@ -69,9 +76,36 @@ def segmentation(image):
         if (mean_array[index] < relative_mean) and (variance_array[index] < relative_var):
             block_array[index] = block_array[index] * 0
 
-    segemented_image = np.reshape(block_array, (image.shape[0], image.shape[1]))
+    segemented_image = np.transpose(np.reshape(block_array, (image.shape[0], image.shape[1])))
 
     return segemented_image
+
+
+def orient(image, width=6):
+
+    # Computing gradient
+    grad_x_sq_array = np.zeros((image.shape[0], image.shape[1]))
+    grad_y_sq_array = np.zeros((image.shape[0], image.shape[1]))
+
+    for row in range(1, image.shape[0]-1):
+        for col in range(1, image.shape[1]-1):
+            grad_x = (image[row+1, col] - image[row-1, col]) / 2
+            grad_y = (image[row, col+1] - image[row, col-1]) / 2
+            # edgeless_image[row, col] = np.array([grad_x, grad_y])
+            grad_x_sq_array[row, col] = grad_x**2 - grad_y**2
+            grad_y_sq_array[row, col] = 2*grad_x*grad_y
+
+    
+
+    block_grad_mean = np.zeros((image.shape[0]/width, image.shape[1]/width))
+    for row in range(0, grad_x_sq_array.shape[0], width):
+        for col in range(0, grad_x_sq_array.shape[1], width):
+            pass
+           
+
+
+    print('f')
+
 
 
 
@@ -82,7 +116,9 @@ img1_gray = greyscale(img1)
 img1_normalised = normalisation(img1_gray)
 
 img1_segmented = segmentation(img1_normalised)
+# segmentation(img1_normalised)
 
+orient(img1_gray)
 
 # Plotting operations
 fig = plt.figure(figsize=(7,7))
@@ -101,5 +137,5 @@ ax_segment.set_title('Segemented')
 ax.imshow(img1)
 ax_gray.imshow(img1_gray, cmap='gray')
 ax_norm.imshow(img1_normalised, cmap='gray')
-ax_segment.imshow(img1_segmented, cmap='gray')
+# ax_segment.imshow(img1_segmented, cmap='gray')
 plt.show()
