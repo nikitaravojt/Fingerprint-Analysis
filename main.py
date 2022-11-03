@@ -24,8 +24,8 @@ def normalisation(image):
     mean = np.sum(image) / np.size(image)
     variance = np.sum((image - mean)**2) / np.size(image)
     
-    desired_mean = 150/255
-    desired_variance = 50/255
+    desired_mean = 150  
+    desired_variance = 50
 
     normalised_image = np.where(image > mean, (desired_mean + np.sqrt(desired_variance*(image-mean)**2 / variance)), \
                                 (desired_mean - np.sqrt(desired_variance*(image-mean)**2 / variance)))
@@ -34,16 +34,44 @@ def normalisation(image):
 
 
 
-def segmentation(image):
-    width = 24
-    # block_array = np.array([image[x:x + width,y:y + width] 
-    #       for x in range(0,image.shape[0]-width,width) 
-    #       for y in range(0,image.shape[1]-width,width)])
+def blockshaped(arr, nrows, ncols):
+    """
+    Return an array of shape (n, nrows, ncols) where
+    n * nrows * ncols = arr.size
 
-    block_array = []
-    for row in range(0, image.shape[0], width):
-        for col in range(0, image.shape[1], width):
-            block_array.append(image[row:row + width, col:col + width]) 
+    If arr is a 2D array, the returned array looks like n subblocks with
+    each subblock preserving the "physical" layout of arr.
+    """
+    h, w = arr.shape
+    return (arr.reshape(h//nrows, nrows, -1, ncols)
+               .swapaxes(1,2)
+               .reshape(-1, nrows, ncols))
+
+
+def unblockshaped(arr, h, w):
+    """
+    Return an array of shape (h, w) where
+    h * w = arr.size
+
+    If arr is of shape (n, nrows, ncols), n sublocks of shape (nrows, ncols),
+    then the returned array preserves the "physical" layout of the sublocks.
+    """
+    n, nrows, ncols = arr.shape
+    return (arr.reshape(h//nrows, -1, nrows, ncols)
+               .swapaxes(1,2)
+               .reshape(h, w))
+
+
+
+
+def segmentation(image, width=24):
+
+    # block_array = []
+    # for row in range(0, image.shape[0], width):
+    #     for col in range(0, image.shape[1], width):
+    #         block_array.append(image[row:row + width, col:col + width]) 
+
+    block_array = blockshaped(image, width, width)
 
     mean_array = []
     variance_array = [] 
@@ -54,7 +82,6 @@ def segmentation(image):
         mean_array.append(block_mean)
         variance_array.append(block_var)
 
-    # plt.plot(np.arange(len(variance_array)), np.asarray(variance_array).astype(np.float64))
 
     global_block_mean = np.mean(mean_array)
     global_block_var = np.mean(variance_array)
@@ -73,10 +100,10 @@ def segmentation(image):
 
 
     for index, block in enumerate(block_array):
-        if (mean_array[index] < relative_mean) and (variance_array[index] < relative_var):
+        if (mean_array[index] > relative_mean) and (variance_array[index] < relative_var):
             block_array[index] = block_array[index] * 0
 
-    segemented_image = np.transpose(np.reshape(block_array, (image.shape[0], image.shape[1])))
+    segemented_image = unblockshaped(block_array, image.shape[0], image.shape[1])
 
     return segemented_image
 
@@ -109,16 +136,15 @@ def orient(image, width=6):
 
 
 
-img1 = plt.imread(image_dir+'012_3_3.tif')
-# img1_gray = cv.cvtColor(img1, cv.COLOR_BGR2GRAY) # cv version, value range is (0,255) instead of (0,1)
-img1_gray = greyscale(img1)
+img1 = plt.imread(image_dir+'012_3_1.tif')
+img1_gray = cv.cvtColor(img1, cv.COLOR_BGR2GRAY) # cv version, value range is (0,255) instead of (0,1)
+# img1_gray = greyscale(img1)
 
 img1_normalised = normalisation(img1_gray)
 
-img1_segmented = segmentation(img1_normalised)
-# segmentation(img1_normalised)
+img1_segmented = segmentation(img1_normalised, width=24)
 
-orient(img1_gray)
+# orient(img1_gray)
 
 # Plotting operations
 fig = plt.figure(figsize=(7,7))
@@ -137,5 +163,5 @@ ax_segment.set_title('Segemented')
 ax.imshow(img1)
 ax_gray.imshow(img1_gray, cmap='gray')
 ax_norm.imshow(img1_normalised, cmap='gray')
-# ax_segment.imshow(img1_segmented, cmap='gray')
+ax_segment.imshow(img1_segmented, cmap='gray')
 plt.show()
