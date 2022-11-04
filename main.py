@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv 
-from skimage.color import rgb2gray
+
 
 image_dir = 'images/'
 
@@ -33,45 +33,32 @@ def normalisation(image):
     return normalised_image
 
 
-
-def blockshaped(arr, nrows, ncols):
+def block_stack(arr, block_height, block_width):
     """
-    Return an array of shape (n, nrows, ncols) where
-    n * nrows * ncols = arr.size
-
-    If arr is a 2D array, the returned array looks like n subblocks with
-    each subblock preserving the "physical" layout of arr.
+    Strips image array into blocks, storing the blocks in a stack.
+    Returns an array of blocks shaped (n, block_height, block_width).
     """
-    h, w = arr.shape
-    return (arr.reshape(h//nrows, nrows, -1, ncols)
+    arr_height, _ = arr.shape
+    return (arr.reshape(arr_height//block_height, block_height, -1, block_width)
                .swapaxes(1,2)
-               .reshape(-1, nrows, ncols))
+               .reshape(-1, block_height, block_width))
 
 
-def unblockshaped(arr, h, w):
+def unblockify(arr, image_height, image_width):
     """
-    Return an array of shape (h, w) where
-    h * w = arr.size
-
-    If arr is of shape (n, nrows, ncols), n sublocks of shape (nrows, ncols),
-    then the returned array preserves the "physical" layout of the sublocks.
+    Reshapes a block stack (from block_stack()) of shape 
+    (n, block_height, block_width) into a 2D array of
+    shape (image_height, image_width)
     """
-    n, nrows, ncols = arr.shape
-    return (arr.reshape(h//nrows, -1, nrows, ncols)
+    _, nrows, ncols = arr.shape
+    return (arr.reshape(image_height//nrows, -1, nrows, ncols)
                .swapaxes(1,2)
-               .reshape(h, w))
-
-
+               .reshape(image_height, image_width))
 
 
 def segmentation(image, width=24):
 
-    # block_array = []
-    # for row in range(0, image.shape[0], width):
-    #     for col in range(0, image.shape[1], width):
-    #         block_array.append(image[row:row + width, col:col + width]) 
-
-    block_array = blockshaped(image, width, width)
+    block_array = block_stack(image, width, width)
 
     mean_array = []
     variance_array = [] 
@@ -103,7 +90,7 @@ def segmentation(image, width=24):
         if (mean_array[index] > relative_mean) and (variance_array[index] < relative_var):
             block_array[index] = block_array[index] * 0
 
-    segemented_image = unblockshaped(block_array, image.shape[0], image.shape[1])
+    segemented_image = unblockify(block_array, image.shape[0], image.shape[1])
 
     return segemented_image
 
