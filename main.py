@@ -143,6 +143,19 @@ def binarize(image, thresh=127, adaptive=False):
 
 
 def closing(img, size=3):
+    """Performs closing operation on a binarized image input. A closing
+    operation is comprised of dilation followed by erosion, with the
+    aim of removing holes and missing pixels in ridge features. The input
+    is inverted such that dilation and erosion is performed on the ridges
+    and not the background. 
+
+    Args:
+        img (arr): binarized image
+        size (int, optional): Size of kernel. Defaults to 3.
+
+    Returns:
+        arr: Closed image (dilated then eroded)
+    """
     img = np.invert(img)
     centre = int(np.ceil(size/2) - 1)
     element = cv.getStructuringElement(cv.MORPH_CROSS, (size, size),
@@ -156,6 +169,19 @@ def closing(img, size=3):
 
 
 def opening(img, size=3):
+    """Performs opening operation on a binarized image input. An opening
+    operation is comprised of erosion followed by dilation, with the
+    aim of removing noise from the image. The input is inverted such 
+    that dilation and erosion is performed on the ridges and not the 
+    background. 
+
+    Args:
+        img (arr): binarized image
+        size (int, optional): Size of kernel. Defaults to 3.
+
+    Returns:
+        arr: Opened image (eroded then dilated)
+    """
     img = np.invert(img)
     centre = int(np.ceil(size/2) - 1)
     element = cv.getStructuringElement(cv.MORPH_CROSS, (size, size),
@@ -169,13 +195,15 @@ def opening(img, size=3):
 
 
 def smoothing(img):
-    """_summary_
+    """Performs smoothing operation on a binarized image by first
+    opening then closing. This has the combined effect of de-noising 
+    the image and then removing holes from ridge features.
 
     Args:
-        img (_type_): _description_
+        img (arr): binarized image
 
     Returns:
-        _type_: _description_
+        arr: smoothed image (opened then closed)
     """
     final = closing(opening(img))
 
