@@ -1,1 +1,1 @@
-global_block_var
+, cmap='gray'

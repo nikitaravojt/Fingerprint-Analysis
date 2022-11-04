@@ -121,6 +121,19 @@ def orient(image, width=6):
     print('f')
 
 
+def binarize(image, thresh=127, adaptive=False):
+    """Basic image thresholding (binarization) using cv2.threshold 
+    """
+    _, thresholded_img = cv.threshold(src=image, thresh=thresh, maxval=255, type=cv.THRESH_BINARY)
+
+    if adaptive:
+        image = image.astype(np.uint8)
+        thresholded_img = cv.adaptiveThreshold(src=image, maxValue=255, \
+            adaptiveMethod=cv.ADAPTIVE_THRESH_GAUSSIAN_C, thresholdType=cv.THRESH_BINARY, \
+            blockSize=41, C=2)
+    
+    return thresholded_img
+
 
 
 img1 = plt.imread(image_dir+'012_3_1.tif')
@@ -131,24 +144,39 @@ img1_normalised = normalisation(img1_gray)
 
 img1_segmented = segmentation(img1_normalised, width=24)
 
-# orient(img1_gray)
+img1_binary = binarize(img1_normalised, thresh=151)
+img1_adaptive = binarize(img1_normalised, adaptive=True)
 
 # Plotting operations
 fig = plt.figure(figsize=(7,7))
-ax = fig.add_subplot(221)
-ax_gray = fig.add_subplot(222)
-ax_norm = fig.add_subplot(223)
-ax_segment = fig.add_subplot(224)
+ax = fig.add_subplot(331)
+ax_gray = fig.add_subplot(332)
+ax_norm = fig.add_subplot(333)
+ax_segment = fig.add_subplot(334)
+ax_glob_thresh = fig.add_subplot(335)
+ax_adaptive_thresh = fig.add_subplot(336)
 ax.axis('off')
 ax.set_title('Original')
+
 ax_gray.axis('off')
 ax_gray.set_title('Greyscale')
+
 ax_norm.axis('off')
 ax_norm.set_title('Normalised')
+
 ax_segment.axis('off')
 ax_segment.set_title('Segemented')
+
+ax_glob_thresh.axis('off')
+ax_glob_thresh.set_title('Global Thresholding', fontsize=10)
+
+ax_adaptive_thresh.axis('off')
+ax_adaptive_thresh.set_title('Adaptive Thresholding \n (Gaussian Method)', fontsize=10)
+
 ax.imshow(img1)
 ax_gray.imshow(img1_gray, cmap='gray')
 ax_norm.imshow(img1_normalised, cmap='gray')
 ax_segment.imshow(img1_segmented, cmap='gray')
+ax_glob_thresh.imshow(img1_binary, cmap='gray')
+ax_adaptive_thresh.imshow(img1_adaptive, cmap='gray')
 plt.show()
