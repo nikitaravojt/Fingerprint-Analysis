@@ -5,6 +5,13 @@ import cv2 as cv
 
 image_dir = 'images/'
 
+def check_channels(img):
+    if len(img.shape) > 2:
+        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) # cv version, value range is (0,255) instead of (0,1)
+
+    return img
+
+
 def greyscale(image):
     """ Converts pixel values of target image to greyscale by means of quadrature.
     """
@@ -124,28 +131,71 @@ def orient(image, width=6):
 def binarize(image, thresh=127, adaptive=False):
     """Basic image thresholding (binarization) using cv2.threshold 
     """
-    _, thresholded_img = cv.threshold(src=image, thresh=thresh, maxval=255, type=cv.THRESH_BINARY)
+    _, thresholded_img = cv.threshold(src=image.astype(np.uint8), thresh=thresh, maxval=255, type=cv.THRESH_BINARY)
 
     if adaptive:
         image = image.astype(np.uint8)
         thresholded_img = cv.adaptiveThreshold(src=image, maxValue=255, \
             adaptiveMethod=cv.ADAPTIVE_THRESH_GAUSSIAN_C, thresholdType=cv.THRESH_BINARY, \
-            blockSize=41, C=2)
+            blockSize=9, C=1)
     
     return thresholded_img
 
 
+def closing(img, size=3):
+    img = np.invert(img)
+    centre = int(np.ceil(size/2) - 1)
+    element = cv.getStructuringElement(cv.MORPH_CROSS, (size, size),
+                                    (centre, centre))
 
-img1 = plt.imread(image_dir+'012_3_1.tif')
-img1_gray = cv.cvtColor(img1, cv.COLOR_BGR2GRAY) # cv version, value range is (0,255) instead of (0,1)
-# img1_gray = greyscale(img1)
+    dilated_img = cv.dilate(img, element)
+    eroded_image = cv.erode(dilated_img, element)
+    final = np.invert(eroded_image)
+
+    return final
+
+
+def opening(img, size=3):
+    img = np.invert(img)
+    centre = int(np.ceil(size/2) - 1)
+    element = cv.getStructuringElement(cv.MORPH_CROSS, (size, size),
+                                    (centre, centre))
+
+    eroded_image = cv.erode(img, element)
+    dilated_img = cv.dilate(eroded_image, element)
+    final = np.invert(dilated_img)
+
+    return final
+
+
+def smoothing(img):
+    """_summary_
+
+    Args:
+        img (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    final = closing(opening(img))
+
+    return final
+
+
+
+
+img1 = plt.imread(image_dir+'set1_2.tif')
+img1_gray = check_channels(img1)
 
 img1_normalised = normalisation(img1_gray)
 
-img1_segmented = segmentation(img1_normalised, width=24)
+img1_segmented = segmentation(img1_normalised, width=12)
 
 img1_binary = binarize(img1_normalised, thresh=151)
 img1_adaptive = binarize(img1_normalised, adaptive=True)
+
+img1_smoothed = smoothing(img1_adaptive)
+
 
 # Plotting operations
 fig = plt.figure(figsize=(7,7))
@@ -155,6 +205,7 @@ ax_norm = fig.add_subplot(333)
 ax_segment = fig.add_subplot(334)
 ax_glob_thresh = fig.add_subplot(335)
 ax_adaptive_thresh = fig.add_subplot(336)
+ax_dilated = fig.add_subplot(337)
 ax.axis('off')
 ax.set_title('Original')
 
@@ -173,10 +224,14 @@ ax_glob_thresh.set_title('Global Thresholding', fontsize=10)
 ax_adaptive_thresh.axis('off')
 ax_adaptive_thresh.set_title('Adaptive Thresholding \n (Gaussian Method)', fontsize=10)
 
-ax.imshow(img1)
+ax_dilated.axis('off')
+ax_dilated.set_title('Dilated')
+
+ax.imshow(img1, cmap='gray')
 ax_gray.imshow(img1_gray, cmap='gray')
 ax_norm.imshow(img1_normalised, cmap='gray')
 ax_segment.imshow(img1_segmented, cmap='gray')
 ax_glob_thresh.imshow(img1_binary, cmap='gray')
 ax_adaptive_thresh.imshow(img1_adaptive, cmap='gray')
+ax_dilated.imshow(img1_smoothed, cmap='gray')
 plt.show()
