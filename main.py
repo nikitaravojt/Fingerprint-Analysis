@@ -222,7 +222,10 @@ img1_segmented = segmentation(img1_normalised, width=12)
 img1_binary = binarize(img1_normalised, thresh=151)
 img1_adaptive = binarize(img1_normalised, adaptive=True)
 
-img1_smoothed = smoothing(img1_adaptive)
+# img1_smoothed = smoothing(img1_adaptive)
+
+img1_open = opening(img1_adaptive)
+
 
 
 # Plotting operations
@@ -234,6 +237,7 @@ ax_segment = fig.add_subplot(334)
 ax_glob_thresh = fig.add_subplot(335)
 ax_adaptive_thresh = fig.add_subplot(336)
 ax_dilated = fig.add_subplot(337)
+
 ax.axis('off')
 ax.set_title('Original')
 
@@ -261,5 +265,6 @@ ax_norm.imshow(img1_normalised, cmap='gray')
 ax_segment.imshow(img1_segmented, cmap='gray')
 ax_glob_thresh.imshow(img1_binary, cmap='gray')
 ax_adaptive_thresh.imshow(img1_adaptive, cmap='gray')
-ax_dilated.imshow(img1_smoothed, cmap='gray')
+ax_dilated.imshow(img1_open, cmap='gray')
+
 plt.show()
