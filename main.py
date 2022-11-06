@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv 
+import skimage.morphology as morph
 
 
 image_dir = 'images/'
@@ -158,7 +159,7 @@ def closing(img, size=3):
     """
     img = np.invert(img)
     centre = int(np.ceil(size/2) - 1)
-    element = cv.getStructuringElement(cv.MORPH_CROSS, (size, size),
+    element = cv.getStructuringElement(cv.MORPH_ELLIPSE, (size, size),
                                     (centre, centre))
 
     dilated_img = cv.dilate(img, element)
@@ -184,7 +185,7 @@ def opening(img, size=3):
     """
     img = np.invert(img)
     centre = int(np.ceil(size/2) - 1)
-    element = cv.getStructuringElement(cv.MORPH_CROSS, (size, size),
+    element = cv.getStructuringElement(cv.MORPH_ELLIPSE, (size, size),
                                     (centre, centre))
 
     eroded_image = cv.erode(img, element)
@@ -194,7 +195,7 @@ def opening(img, size=3):
     return final
 
 
-def smoothing(img):
+def smoothing(img, size=3):
     """Performs smoothing operation on a binarized image by first
     opening then closing. This has the combined effect of de-noising 
     the image and then removing holes from ridge features.
@@ -210,6 +211,19 @@ def smoothing(img):
     return final
 
 
+def remove_holes(img):
+    img = morph.remove_small_holes(img, area_threshold=15, connectivity=5)
+
+    return img
+    
+
+def skeletonise(img):
+    img_inv = np.invert(img.astype(bool)) 
+    img_skeleton = morph.skeletonize(img_inv)
+    img_skeleton = np.invert(img_skeleton)
+    
+    return img_skeleton
+
 
 
 img1 = plt.imread(image_dir+'set1_2.tif')
@@ -222,10 +236,9 @@ img1_segmented = segmentation(img1_normalised, width=12)
 img1_binary = binarize(img1_normalised, thresh=151)
 img1_adaptive = binarize(img1_normalised, adaptive=True)
 
-# img1_smoothed = smoothing(img1_adaptive)
+img1_smoothed = smoothing(img1_adaptive, size=25)
 
-img1_open = opening(img1_adaptive)
-
+img1_skeletonised = skeletonise(img1_smoothed)
 
 
 # Plotting operations
@@ -237,6 +250,7 @@ ax_segment = fig.add_subplot(334)
 ax_glob_thresh = fig.add_subplot(335)
 ax_adaptive_thresh = fig.add_subplot(336)
 ax_dilated = fig.add_subplot(337)
+ax_skeleton = fig.add_subplot(338)
 
 ax.axis('off')
 ax.set_title('Original')
@@ -257,7 +271,10 @@ ax_adaptive_thresh.axis('off')
 ax_adaptive_thresh.set_title('Adaptive Thresholding \n (Gaussian Method)', fontsize=10)
 
 ax_dilated.axis('off')
-ax_dilated.set_title('Dilated')
+ax_dilated.set_title('Smoothed')
+
+ax_skeleton.axis('off')
+ax_skeleton.set_title('Skeletonised')
 
 ax.imshow(img1, cmap='gray')
 ax_gray.imshow(img1_gray, cmap='gray')
@@ -265,6 +282,7 @@ ax_norm.imshow(img1_normalised, cmap='gray')
 ax_segment.imshow(img1_segmented, cmap='gray')
 ax_glob_thresh.imshow(img1_binary, cmap='gray')
 ax_adaptive_thresh.imshow(img1_adaptive, cmap='gray')
-ax_dilated.imshow(img1_open, cmap='gray')
+ax_dilated.imshow(img1_smoothed, cmap='gray')
+ax_skeleton.imshow(img1_skeletonised, cmap='gray')
 
 plt.show()
