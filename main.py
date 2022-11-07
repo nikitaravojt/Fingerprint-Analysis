@@ -225,6 +225,50 @@ def skeletonise(img):
     return img_skeleton
 
 
+def identify_terminations(img):
+    img = img.astype(int)
+    term_1 = np.array([[1,0,1],
+                       [1,0,1],
+                       [1,1,1]])
+    term_2 = np.array([[1,1,1],
+                       [1,0,0],
+                       [1,1,1]])
+    term_3 = np.array([[1,1,1],
+                       [1,0,1],
+                       [1,0,1]])
+    term_4 = np.array([[1,1,1],
+                       [0,0,1],
+                       [1,1,1]])
+    term_5 = np.array([[1,1,0],
+                       [1,0,1],
+                       [1,1,1]])
+    term_6 = np.array([[1,1,1],
+                       [1,0,1],
+                       [1,1,0]])                       
+    term_7 = np.array([[1,1,1],
+                       [1,0,1],
+                       [0,1,1]])
+    term_8 = np.array([[0,1,1],
+                       [1,0,1],
+                       [1,1,1]])
+    term_stack = np.dstack((term_1, term_2, term_3, term_4, term_5, term_6, term_7, term_8))
+    img_stack = block_stack(img, 3, 3)
+
+    for index, neighbourhood in enumerate(img_stack):
+        for pattern in term_stack:
+            if pattern == neighbourhood:
+                neighbourhood[1,1] = np.nan # set middle of neighbourhood to NaN
+                img_stack[index] = neighbourhood # place this modified neighbourhood back in the stack
+
+    marked_img_stack = unblockify(img_stack, img.shape[0], img.shape[1])                
+    # term_coords = np.where()
+    print('f')
+
+    # debug for loop to check if patterns and neighbourhoods are correct
+    # identify where np.nans are in result, consider using something other than np.nan
+    # once coords of terminations are stored, replace all nans back to 0 (black)? what to output, just coords?
+
+
 
 img1 = plt.imread(image_dir+'set1_2.tif')
 img1_gray = check_channels(img1)
@@ -240,6 +284,7 @@ img1_smoothed = smoothing(img1_adaptive, size=25)
 
 img1_skeletonised = skeletonise(img1_smoothed)
 
+identify_terminations(img1_skeletonised)
 
 # Plotting operations
 fig = plt.figure(figsize=(7,7))
