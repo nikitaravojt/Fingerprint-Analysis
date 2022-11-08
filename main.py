@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv 
 import skimage.morphology as morph
+from patterns import load_terminations, load_bifurcations
 
 
 image_dir = 'images/'
@@ -84,7 +85,7 @@ def segmentation(image, width=24):
     background_blocks1 = []
     background_blocks2 = []
     for index, block in enumerate(block_array):
-        if (mean_array[index] < global_block_mean):
+        if (mean_array[index] > global_block_mean):
             background_blocks1.append(block)
     relative_mean = np.mean(background_blocks1)
     
@@ -225,57 +226,97 @@ def skeletonise(img):
     return img_skeleton
 
 
-def identify_terminations(img):
+def locate_features(img, term_thresh=8, bif_thresh=6):
+    """Identifies the row, col locations of all fingerprint ridge terminations 
+    and bifurcations in the fingerprint image, based on pre-defined patterns.
+
+    Args:
+        img (arr): Skeletonised (thinned) fingerprint image
+
+    Returns:
+        arr: Coordinates of all ridge terminations
+    """
+
     img = img.astype(int)
-    term_1 = np.array([[1,0,1],
-                       [1,0,1],
-                       [1,1,1]])
-    term_2 = np.array([[1,1,1],
-                       [1,0,0],
-                       [1,1,1]])
-    term_3 = np.array([[1,1,1],
-                       [1,0,1],
-                       [1,0,1]])
-    term_4 = np.array([[1,1,1],
-                       [0,0,1],
-                       [1,1,1]])
-    term_5 = np.array([[1,1,0],
-                       [1,0,1],
-                       [1,1,1]])
-    term_6 = np.array([[1,1,1],
-                       [1,0,1],
-                       [1,1,0]])                       
-    term_7 = np.array([[1,1,1],
-                       [1,0,1],
-                       [0,1,1]])
-    term_8 = np.array([[0,1,1],
-                       [1,0,1],
-                       [1,1,1]])
-    term_stack = np.dstack((term_1, term_2, term_3, term_4, term_5, term_6, term_7, term_8))
-    img_stack = block_stack(img, 3, 3)
 
-    for index, neighbourhood in enumerate(img_stack):
-        for pattern in term_stack:
-            if pattern == neighbourhood:
-                neighbourhood[1,1] = np.nan # set middle of neighbourhood to NaN
-                img_stack[index] = neighbourhood # place this modified neighbourhood back in the stack
+    term_stack = load_terminations() # loading terminations pattern stack
+    bif_stack = load_bifurcations() # loading bifurcations pattern stack
 
-    marked_img_stack = unblockify(img_stack, img.shape[0], img.shape[1])                
-    # term_coords = np.where()
-    print('f')
+    terminations_img = np.copy(img) # termination pixels will be marked with (int) 2
+    bifurcations_img = np.copy(img) # bifurcations pixels will be marked with (int) 2
+    black_coords = np.argwhere(img == 0) # identifying all black pixels in target image
 
-    # debug for loop to check if patterns and neighbourhoods are correct
-    # identify where np.nans are in result, consider using something other than np.nan
-    # once coords of terminations are stored, replace all nans back to 0 (black)? what to output, just coords?
+    for coord in black_coords:
+        row, col = coord[0], coord[1]
+        if (row != 0) and (row != img.shape[0]-1) and (col != 0) and (col != img.shape[1]-1):
+            neighbourhood = [[img[row-1][col-1], img[row-1][col], img[row-1][col+1]], \
+                            [img[row][col-1], img[row][col], img[row][col+1]], \
+                            [img[row+1][col-1], img[row+1][col], img[row+1][col+1]]]
+
+            for pattern in term_stack:
+                if np.array_equal(neighbourhood, pattern):
+                    terminations_img[row, col] = 2
+            for pattern in bif_stack:
+                if np.array_equal(neighbourhood, pattern):
+                    bifurcations_img[row, col] = 2
+              
+    term_coords = np.argwhere(terminations_img == 2)
+    bif_coords = np.argwhere(bifurcations_img == 2)
+    
+
+    # Checking for false positives
+    term_coords_corrected = np.copy(term_coords)
+    bif_coords_corrected = np.copy(bif_coords)
+    target = np.array([-1, -1]) # setting up false positive target to remove later
+
+    for index, coord in enumerate(term_coords):
+        distances = np.sqrt((term_coords[:,0]-coord[0])**2 + (term_coords[:,1]-coord[1])**2)
+        distances[index] = 999 # setting itself to high value to avoid removing itself
+        removal_targets = np.where(distances < term_thresh)
+        for removal_index in removal_targets:
+            term_coords_corrected[removal_index] = -1.0
+    
+    term_coords_corrected = np.delete(term_coords_corrected, np.where(term_coords_corrected == target), axis=0)
+
+    for index, coord in enumerate(bif_coords):
+        distances = np.sqrt((bif_coords[:,0]-coord[0])**2 + (bif_coords[:,1]-coord[1])**2)
+        distances[index] = 999 # setting itself to high value to avoid removing itself
+        removal_targets = np.where(distances < bif_thresh)
+        for removal_index in removal_targets:
+            bif_coords_corrected[removal_index] = -1.0
+
+    bif_coords_corrected = np.delete(bif_coords_corrected, np.where(bif_coords_corrected == target), axis=0)
+
+
+    return (term_coords_corrected, bif_coords_corrected)
+
+
+def highlight_features(img, term_coords, bif_coords, target_axis):
+    """Outputs fingerprint image overlayed by a scatter plot of
+    the locations of ridge terminations (endings).
+
+    Args:
+        img (arr): Image to overlay
+        feature_coords (arr): Array containing the row,col positions of ridge terminations
+        target_axis (plt object): matplotlib axis to plot over
+    """
+    target_axis.set_aspect('equal')
+    target_axis.imshow(img, cmap='gray')
+    target_axis.scatter(term_coords[:,1], term_coords[:,0], facecolors='none', edgecolors='b', label='Terminations')
+    target_axis.scatter(bif_coords[:,1], bif_coords[:,0], facecolors='none', edgecolors='r', label='Bifurcations')
+    target_axis.axis('off')
+    target_axis.legend(loc='upper right')
+
+    plt.show()
 
 
 
-img1 = plt.imread(image_dir+'set1_2.tif')
+img1 = plt.imread(image_dir+'set1_1.tif')
 img1_gray = check_channels(img1)
 
 img1_normalised = normalisation(img1_gray)
 
-img1_segmented = segmentation(img1_normalised, width=12)
+img1_segmented = segmentation(img1_normalised, width=20)
 
 img1_binary = binarize(img1_normalised, thresh=151)
 img1_adaptive = binarize(img1_normalised, adaptive=True)
@@ -284,7 +325,6 @@ img1_smoothed = smoothing(img1_adaptive, size=25)
 
 img1_skeletonised = skeletonise(img1_smoothed)
 
-identify_terminations(img1_skeletonised)
 
 # Plotting operations
 fig = plt.figure(figsize=(7,7))
@@ -331,3 +371,9 @@ ax_dilated.imshow(img1_smoothed, cmap='gray')
 ax_skeleton.imshow(img1_skeletonised, cmap='gray')
 
 plt.show()
+
+
+# Minutiae Extraction Output
+fig2, ax2 = plt.subplots(1)
+term_locations, bif_locations = locate_features(img1_skeletonised, term_thresh=8, bif_thresh=6)
+highlight_features(img1_skeletonised, term_locations, bif_locations, ax2)

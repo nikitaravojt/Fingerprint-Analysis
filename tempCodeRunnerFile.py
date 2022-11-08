@@ -1,2 +1,3 @@
 
-img1 = plt.imread(image_dir+'set1_2.tif')
+# # ax2.set_aspect('equal')
+# highlight_features(img1_skeletonised, locate_terminations(img1_skeletonised), ax2)
