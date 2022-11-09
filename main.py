@@ -246,7 +246,7 @@ def locate_features(img, term_thresh=8, bif_thresh=6):
     bifurcations_img = np.copy(img) # bifurcations pixels will be marked with (int) 2
     black_coords = np.argwhere(img == 0) # identifying all black pixels in target image
 
-    for coord in black_coords:
+    for coord in black_coords:  
         row, col = coord[0], coord[1]
         if (row != 0) and (row != img.shape[0]-1) and (col != 0) and (col != img.shape[1]-1):
             neighbourhood = [[img[row-1][col-1], img[row-1][col], img[row-1][col+1]], \
@@ -308,6 +308,24 @@ def highlight_features(img, term_coords, bif_coords, target_axis):
     target_axis.legend(loc='upper right')
 
     plt.show()
+
+
+def plot_thresh_vs_features(img_skeleton, target_axis):
+    thresholds = np.arange(0,16) # non-inclusive
+    detected_features = np.zeros(len(thresholds))
+
+    for index, thresh in enumerate(thresholds):
+        term_locs, bif_locs = locate_features(img_skeleton, thresh, thresh)
+        detected_features[index] = len(term_locs) + len(bif_locs)
+
+    # Plotting operations
+    target_axis.plot(thresholds, detected_features, '-.')
+    target_axis.set_xlabel('Threshold Value')
+    target_axis.set_ylabel('Detected Features (Total)')
+
+    plt.savefig('Features_vs_Thresh.jpg')
+    plt.show()
+
 
 
 
@@ -373,7 +391,11 @@ ax_skeleton.imshow(img1_skeletonised, cmap='gray')
 plt.show()
 
 
+
 # Minutiae Extraction Output
 fig2, ax2 = plt.subplots(1)
 term_locations, bif_locations = locate_features(img1_skeletonised, term_thresh=8, bif_thresh=6)
 highlight_features(img1_skeletonised, term_locations, bif_locations, ax2)
+
+fig3, ax3 = plt.subplots(1)
+plot_thresh_vs_features(img1_skeletonised, target_axis=ax3)
