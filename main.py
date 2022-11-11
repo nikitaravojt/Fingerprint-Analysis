@@ -329,7 +329,7 @@ def plot_thresh_vs_features(img_skeleton, target_axis):
 
 
 
-img1 = plt.imread(image_dir+'set1_1.tif')
+img1 = plt.imread(image_dir+'set1_2.tif')
 img1_gray = check_channels(img1)
 
 img1_normalised = normalisation(img1_gray)
@@ -354,6 +354,7 @@ ax_glob_thresh = fig.add_subplot(335)
 ax_adaptive_thresh = fig.add_subplot(336)
 ax_dilated = fig.add_subplot(337)
 ax_skeleton = fig.add_subplot(338)
+ax_extracted = fig.add_subplot(339)
 
 ax.axis('off')
 ax.set_title('Original')
@@ -379,6 +380,9 @@ ax_dilated.set_title('Smoothed')
 ax_skeleton.axis('off')
 ax_skeleton.set_title('Skeletonised')
 
+ax_extracted.axis('off')
+ax_extracted.set_title('Minutiae')
+
 ax.imshow(img1, cmap='gray')
 ax_gray.imshow(img1_gray, cmap='gray')
 ax_norm.imshow(img1_normalised, cmap='gray')
@@ -394,8 +398,8 @@ plt.show()
 
 # Minutiae Extraction Output
 fig2, ax2 = plt.subplots(1)
-term_locations, bif_locations = locate_features(img1_skeletonised, term_thresh=8, bif_thresh=6)
+term_locations, bif_locations = locate_features(img1_skeletonised, term_thresh=9, bif_thresh=6)
 highlight_features(img1_skeletonised, term_locations, bif_locations, ax2)
 
-fig3, ax3 = plt.subplots(1)
-plot_thresh_vs_features(img1_skeletonised, target_axis=ax3)
+# fig3, ax3 = plt.subplots(1)
+# plot_thresh_vs_features(img1_skeletonised, target_axis=ax3)
