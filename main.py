@@ -104,32 +104,6 @@ def segmentation(image, width=24):
     return segemented_image
 
 
-def orient(image, width=6):
-
-    # Computing gradient
-    grad_x_sq_array = np.zeros((image.shape[0], image.shape[1]))
-    grad_y_sq_array = np.zeros((image.shape[0], image.shape[1]))
-
-    for row in range(1, image.shape[0]-1):
-        for col in range(1, image.shape[1]-1):
-            grad_x = (image[row+1, col] - image[row-1, col]) / 2
-            grad_y = (image[row, col+1] - image[row, col-1]) / 2
-            # edgeless_image[row, col] = np.array([grad_x, grad_y])
-            grad_x_sq_array[row, col] = grad_x**2 - grad_y**2
-            grad_y_sq_array[row, col] = 2*grad_x*grad_y
-
-    
-
-    block_grad_mean = np.zeros((image.shape[0]/width, image.shape[1]/width))
-    for row in range(0, grad_x_sq_array.shape[0], width):
-        for col in range(0, grad_x_sq_array.shape[1], width):
-            pass
-           
-
-
-    print('f')
-
-
 def binarize(image, thresh=127, adaptive=False):
     """Basic image thresholding (binarization) using cv2.threshold 
     """
@@ -354,7 +328,6 @@ ax_glob_thresh = fig.add_subplot(335)
 ax_adaptive_thresh = fig.add_subplot(336)
 ax_dilated = fig.add_subplot(337)
 ax_skeleton = fig.add_subplot(338)
-ax_extracted = fig.add_subplot(339)
 
 ax.axis('off')
 ax.set_title('Original')
@@ -380,8 +353,6 @@ ax_dilated.set_title('Smoothed')
 ax_skeleton.axis('off')
 ax_skeleton.set_title('Skeletonised')
 
-ax_extracted.axis('off')
-ax_extracted.set_title('Minutiae')
 
 ax.imshow(img1, cmap='gray')
 ax_gray.imshow(img1_gray, cmap='gray')
